@@ -1,0 +1,16 @@
+
+nom	    distance	   rayon	  masse	    vitesse
+Soleil  0	           6.96e+08	1.99e+30	0
+Mercure	5.79e+10	   2.44e+06	3.30e+23	0
+Venus	  1.08e+11	   6.05e+06	4.87e+24	0
+Terre	  1.50e+11     6.38e+06	5.97e+24	2.98e+04
+Mars	  2.28e+11	   3.40e+06	6.42e+23	0
+Jupiter	7.78e+11	   7.15e+07	1.90e+27	0
+Saturne	1.43e+12	   6.03e+07	5.69e+26	0
+Uranus	2.87e+12	   2.56e+07	8.69e+25	0
+Neptune	4.50e+12	   2.48e+07	1.02e+26	0
+Lune    1.500849e11           7.36e22   1.023e3
+
+"Mercure", 57.9e9, 47e3, 3.30e23, 2.44e6, 1407.5, Math.PI / 2, '/static/textures/mercurymap.jpg',
+"Vénus", 108e9, 35.5e3, 5.972e24, 6.05e6, 5832, Math.PI / 2, '/static/textures/venusmap.jpg'),
+"Terre", 149.7e9, 29.8e3, 5.972e24, 6.38e6, 23.9344, Math.PI / 2, '/static/textures/earthmap1k.jpg',
