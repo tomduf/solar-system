@@ -23,34 +23,41 @@ const dThetaSun = 2 * dt * Math.PI / (30 * 24 * 3600);
 // Classe planète
 class Planete {
   constructor(nom, x0, v0, m, r, periode, axe, rotx, texture) {
+    this.nom = nom;
+    // masse
+    this.m = m;
+    // vitesse angulaire de rotation
+    this.omega = 2 * Math.PI / (periode * 3600);
+    // inclinaison de l'axe polaire
+    this.axe = new THREE.Vector3(Math.sin(axe * Math.PI / 180), 0, Math.cos(axe * Math.PI / 180)).normalize();
+    // position de départ
+    this.p = new THREE.Vector3(x0, 0, 0);
+    // vitesse de départ
+    this.v = new THREE.Vector3(0, v0, 0);
+    // objet volumique
     const geometryPlanete = new THREE.SphereGeometry(r * echellePlanetes, 32, 32);
     const texturePlanete = new THREE.TextureLoader().load(texture);
     const materialPlanete = new THREE.MeshPhongMaterial({ map: texturePlanete });
-    this.nom = nom;
     this.mesh = new THREE.Mesh(geometryPlanete, materialPlanete);
-    const curve = new THREE.EllipseCurve(
-      0, 0,            // ax, aY
-      x0 * echelleDistances, x0 * echelleDistances,           // xRadius, yRadius
-      0, 2 * Math.PI,  // aStartAngle, aEndAngle
-      false,            // aClockwise
-      0                 // aRotation
-    );
-    const points = curve.getPoints(200);
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-
-    const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
-
-    // Create the final object to add to the scene
-    this.orbit = new THREE.Line(geometry, material);
-    
-    this.m = m;
-    this.omega = 2 * Math.PI / (periode * 3600);
-    this.axe = new THREE.Vector3(Math.sin(axe * Math.PI / 180), 0, Math.cos(axe * Math.PI / 180)).normalize();
-    this.p = new THREE.Vector3(x0, 0, 0);
-    this.v = new THREE.Vector3(0, v0, 0);
+    // orbite
+    const curveOrbit = new THREE.EllipseCurve(0, 0, x0 * echelleDistances, x0 * echelleDistances, 0, 2 * Math.PI, false, 0);
+    const pointsOrbit = curveOrbit.getPoints(200);
+    const geometryOrbit = new THREE.BufferGeometry().setFromPoints(pointsOrbit);
+    const materialOrbit = new THREE.LineBasicMaterial({ color: 0xff0000 });
+    this.orbit = new THREE.Line(geometryOrbit, materialOrbit);
+    // Réglages de positionnement et d'inclinaison
     this.mesh.rotation.x += rotx;
     this.mesh.rotation.z -= axe * Math.PI / 180;
+    // mise à l'échelle pour la maquette virtuelle
     this.mesh.position.add(this.p.clone().multiplyScalar(echelleDistances));
+    // Tableau des points de trail
+    this.trail = [];
+    const geometry = new THREE.BufferGeometry();
+    for (let i = 0; i < 100; i++){
+			geometry.setAttribute( 'position', this.mesh.position );
+			const material = new THREE.PointsMaterial( { color: 0x888888 } );
+      this.trail.push(new THREE.Points( geometry, material ));
+    }
   }
 }
 
@@ -72,8 +79,6 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-
-
   // Initialisation de la caméra
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 6000);
   //camera = new THREE.OrthographicCamera(-500, 500, 500, -500, 0.1, 1000);
@@ -86,6 +91,7 @@ function init() {
   controls.screenSpacePanning = false;
   controls.minDistance = 50;
   controls.maxDistance = 1000;
+  controls.enablePan = false;
   //controls.maxPolarAngle = Math.PI ;
 
   // Initialisation du fond stellaire
@@ -110,7 +116,7 @@ function init() {
     new Planete("Vénus", 108e9, 35.5e3, 5.972e24, 6.05e6, 5832, 0, Math.PI / 2, '/static/textures/venusmap.jpg'),
     new Planete("Terre", 149.7e9, 29.8e3, 5.972e24, 6.38e6, 23.9344, 23.45, Math.PI / 2, '/static/textures/earthmap1k.jpg'),
     new Planete("Mars", 228e9, 24.0802e3, 6.42e23, 3.40e6, 25.19, 24.622962, Math.PI / 2, '/static/textures/mars_1k_color.jpg'),
- 
+
   ];
 
   // Ajout de toutes les planètes à la scène
@@ -143,7 +149,7 @@ function init() {
 }
 
 function animate() {
-  // Demande de raffraîchissement du navigateur (60x/s) fonctiont web
+  // Demande de rafraîchissement du navigateur (60x/s) fonction web
   // https://developer.mozilla.org/fr/docs/Web/API/Window/requestAnimationFrame
   requestAnimationFrame(animate);
 
@@ -155,20 +161,24 @@ function animate() {
   // Calculs de mécanique spatiale sur toutes les planètes
   for (const planete of planetes) {
 
-    // Vecteur unitaire n centripète par normalisation du vecteur position de la planète par rapport au Soleil
+    // Vecteur unitaire n par normalisation du vecteur position de la planète par rapport au Soleil
     const n = planete.p.clone().normalize();
     // acceleration due au Soleil
     const a = n.multiplyScalar(-G * M / planete.p.distanceToSquared(sun.position));
     for (const corps of planetes) {
       if (corps !== planete) {
-        // Vecteur unitaire n centripète par normalisation du vecteur position de la planète par rapport au corps
+        // Vecteur unitaire n par normalisation du vecteur position de la planète par rapport au corps
         const ni = planete.p.clone().sub(corps.p).normalize();
         // acceleration due au corps i
         const ai = ni.multiplyScalar(-G * corps.m / planete.p.distanceToSquared(corps.p));
         // Les accélérations s'ajoutent
         a.add(ai);
       }
+      // Visibilité des orbites
       planete.orbit.visible = control.orbits
+
+      // Affichage des trails
+      planete.trail = []
     }
 
     // variation de vitesse
@@ -202,8 +212,9 @@ function animate() {
   else {
     const indexPlanete = control.numPlanete - 1;
     controls.target = planetes[indexPlanete].mesh.position;
-    camera.position.x = planetes[indexPlanete].mesh.position.x + 30
-    camera.position.y = planetes[indexPlanete].mesh.position.y - 30
+    //camera.position.x = planetes[indexPlanete].mesh.position.x + 10
+    //camera.position.y = planetes[indexPlanete].mesh.position.y - 10
+    camera.rotation.set(0,0,0);
   }
   //camera.lookAt(planetes[2].mesh.position);
   //console.log(camera.target);
